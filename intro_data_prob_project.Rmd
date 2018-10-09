@@ -1,0 +1,292 @@
+---
+title: "Final Project: Exploratory Analysis of the BRFSS Data"
+author: Angela Liu 
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Synopsis
+
+This report contains exploratory analysis of the Behavioral Risk Factor Surveillance System (BRFSS) dataset. The goal of this exploratory analysis is to visually inspect the data and identify several trends in the data. The results of the exploratory analysis will help pinpoint future research directions, including more in-depth data analyses and/or new types of data to collect. 
+
+
+## Project Setup 
+
+In this section, the necessary R packages and libraries will be loaded and the raw data set read in.
+
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+* * *
+
+## Part 1: Data
+
+The Behavioral Risk Factor Surveillance System (BRFSS) dataset contains observational health data of about 492,000 randomly-selected individuals living in the United States in 2013 and 2014. Age, gender, general health status, any disease indication, dietary habits, physical activity levels, smoking and drinking, etc., are collected via a phone interview. The questionnaire used for the interview can be found at http://www.cdc.gov/brfss/questionnaires/pdf-ques/2013%20BRFSS_English.pdf. Variables collected are listed in the code book that can be found at http://www.cdc.gov/brfss/annual_data/2013/pdf/CODEBOOK13_LLCP.pdf. 
+
+Because the subjects were randomly selected, the observations in the data set are generally believed to be representive of the US population. Therefore, the trends found in this data are believed to generalize well to the entire US population. Some exceptions may include certain variables with mostly missing data (data not collected). For example, variable `lsatisfy` (emotional support and life satisfaction) only has about 10,000 responses with over 479,000 missing values (not asked or missing). That is, only about 2% of the respondents provided answers to this question. Without further information regarding whether the responded 2% is truly representative of the general population, we cannot use the answers to this question to extrapolate to the general population.     
+In addition, because the data is obversational and not experimental (i.e., no random assignment of subjects into different treatments), any trends identified in the data can only be considered correlational and not causal. In other words, no causality can be concluded from this dataset. 
+
+
+* * *
+
+## Part 2: Research questions
+
+### Research question 1:
+
+
+### Research question 2: Is physical activity level correlated with general health status?
+
+Physical activity is commonly believed to be associated with the health status of an individual.For example, arthritis patients with joint pain tend to be less physically active, due to their health condition and they may associate this with general poor health. Conversely, physically inactive arthritis patients may suffer more severe symptoms and discomfort, due to their inactive lifestyle.  
+Multiple studies have found that physical activities cause our bodies to release a variety of hormones, many of which are beneficial to our health. 
+
+In this first research question, we are interested to find out whether based on the BRFSS dataset, we can identify a similar trend that more physically active people tend to self indicate that they have better general health. 
+
+Variable `genhlth` is the subject's self-identified general health status. It has eight levels, including `Excellent`, `Very good`, `Good`, `Fair`, `Poor`, `Don't know/Not Sure`, `Refused`, and `Not asked or Missing`. There are about 2,000 subjects whose responses are unknown or missing. As this number is small compared to the entire sample size (about 490,000), we will ignore these rows of data from the subsequent analysis. 
+
+`X_pacat1` is a calculated variable describing the physical activity categories based on subjects' provided exercise data (frequency and duration). This variable has five possible values, including `Highly Active`, `Active`, `Insufficiently Active`, `Inactive`, and `Don't know/Not Sure/Refused/Missing`. We will again only focus on the subjects with known answers and ignore unknown and missing values.  
+
+In part 3, we will examine these two variables and find out whether they are correlated. 
+
+
+### Research question 3: Are medical conditions correlated with poor health status?
+
+We are interested to find out whether having a disease indication (such as asthma, arthritis, diabetes) is correlated with poor general health, as we would ancicipate patients with life-debilitating diseases to self-identify themselves as having poor health. On the other hand, conditions that can be effectively managed should not cause the patients to have significant differences in general health compared with healthy individuals. So if we indeed find a difference between the general health status of a patient group compared with that of healthy individuals, we may infer that the disease is more life-debilitating and is challenging to manage.  
+
+The health conditions we will examine include overweight or obesity (`X_rfbmi5`), high cholesterol (`X_rfchol`), arthritis (`X_drdxar1`), asthma (`X_casthm1`), and diabetes (`diabete3`). Once again, we will ignore the subjects with unknown or missing values. 
+
+In Part 3, we will examine these variables and how patients with these medical conditions self identify their health status. 
+
+
+
+## Part 3: Exploratory data analysis
+
+### Research question 1: 
+
+
+
+### Research question 2: Is physical activity level correlated with general health status?
+
+We first find how the subjects have self categorized themselves in terms of their general health status. These values will be used as a reference for comparison, when we later examine different sub-populations and how their physical activity levels affect their health status. 
+
+
+```{r gen-health}
+# General health status reported by each subject
+# ignore NA 
+health_status <- brfss2013 %>%
+  filter(!is.na(genhlth)) %>%
+  group_by(genhlth) %>%
+  summarize(count = n()) %>%
+  mutate(percent = count / sum(count))
+
+health_status
+```
+
+From the above table, we can see the majority of the respondents identified themselves as having good or better health. In particular, among the `r sum(health_status$count)` respondents, 17.5% of them considered themselves as having "excellent" health; 32.5% identified themselves as having "very good" health; 30.7% responded that they have "good" health; only 13.6% and 5.7% indicated that they have "fair" or "poor" health. 
+
+We next filter unknown or missing values from the two variables `genhlth` and `X_pacat1`. We then group the data by the subject's physical activity level and general health status. The resulting table is displayed. 
+
+```{r pa-health}
+act_health <- brfss2013 %>%
+  filter(!is.na(X_pacat1), !is.na(genhlth)) %>%
+  group_by(X_pacat1, genhlth) %>%
+  summarize(count_act = n()) %>%
+  mutate(perc_act = count_act / sum(count_act))
+
+act_health
+```
+
+We then generate a stacked bar plot. 
+
+```{r pa-plot}
+ggplot(act_health, aes(x=X_pacat1, y=perc_act, fill=genhlth)) + geom_bar(stat="identity")
+
+```
+
+From the above table and bar plot, we can see that subjects with more physical activity tend to self-identify themselves as having good or better health. Subjects with less physical activity tend to self-identify themselves as having fair or poor health. This plot suggests that there is indeed a correlation between higher levels of physical activity and better general health. 
+
+```{r}
+q <- act_health$count_act[act_health$X_pacat1 == 'Inactive' & act_health$genhlth == "Poor"]
+size <- sum(act_health$count_act[act_health$X_pacat1 == 'Inactive'])
+prob <- health_status$percent[health_status$genhlth == "Poor"]
+prob_inact <- pbinom(q, size, prob, lower.tail=FALSE)
+q
+size
+prob
+prob_inact
+
+```
+
+Using Binomial distribution as an approximation, the probability of finding exactly ```r act_health$count_act[act_health$X_pacat1 == 'Inactive' & act_health$genhlth == "Poor"]``` or more people among a random sample of `r sum(act_health$count_act[act_health$X_pacat1 == 'Inactive'])` people who would self-identify themselves as having "poor" health, if we take 5.7% as the general population's probability of having "poor" health is `r prob_inact`. This low probability means that the difference between the inactive group of subjects in health status from the general respondents is mostly likely genuine and not likely due to chance.  
+
+
+
+### Research question 3: Are medical conditions correlated with poor health status?
+
+We will next examine the above listed several medical conditions and see whether their medical conditions affect how these patients have self-identified their health status. 
+
+**Overweigth or obesity**
+
+```{r disease-health}
+# Find whether being overweight, having high cholesterol, having arthritis, having asthma, or
+#    having diabetes, affect how the subjects rank their general health status 
+
+# currently overweight or obese (BMI > 25)
+bmi_health <- brfss2013 %>%
+  filter(!is.na(X_rfbmi5), !is.na(genhlth)) %>%
+  filter(X_rfbmi5 == "Yes") %>%
+  group_by(genhlth) %>%
+  summarize(count_bmi = n()) %>%
+  mutate(perc_bmi = count_bmi / sum(count_bmi))
+
+bmi_health
+```
+
+The above table summarizes the general health status of overweight and obsese subjects. We can see the percentages of overweight and obsese group (`r sum(bmi_health$count_bmi)` respondents) that identify themselves as having "excellent", "very good", "good", "fair", and "poor" health are very similar to the entire sample. 
+
+
+**High cholesterol** 
+
+```{r}
+
+# currnetly have high cholesterol
+chol_health <- brfss2013 %>%
+  filter(!is.na(X_rfchol), !is.na(genhlth)) %>%
+  filter(X_rfchol == "Yes") %>%
+  group_by(genhlth) %>%
+  summarize(count_chol = n()) %>%
+  mutate(perc_chol = count_chol / sum(count_chol))
+chol_health
+```
+The above table summarizes similar data for respondents with high cholesterol. Again, the percentages of health categories among this group (`r sum(chol_health$count_chol)` respondents) are similar to the entire sample and the overweight and obsese group. 
+
+These above results suggest that being overweight or obsese and having high cholesterol are conditions that can be well managed without much adverse effect to people's general health status.  
+
+We will next examine several medical conditions that are known to be more debilitating. 
+
+**Arthritis** 
+
+```{r}
+# currently have arthritis
+arth_health <- brfss2013 %>%
+  filter(!is.na(X_drdxar1), !is.na(genhlth)) %>%
+  filter(X_drdxar1 == "Diagnosed with arthritis") %>%
+  group_by(genhlth) %>%
+  summarize(count_arth = n()) %>%
+  mutate(perc_arth = count_arth / sum(count_arth))
+
+arth_health
+```
+
+The above table summarizes the data for the `r sum(arth_health$count_arth)` respondents who currently have arthritis. We can see a clear trend that the percentages in the "excellent", "very good" and "good" categories are smaller than in the entire sample and the percentages in the "fair" and "poor" categories are bigger than the general respondents. 
+
+This result suggests that arthritis is a condition that has a mor pronounced effect on the quality of living and health status of an invididual than overweight/obesity and high cholesterol.  
+
+**Asthma** 
+
+```{r}
+
+# currently have asthma
+asth_health <- brfss2013 %>%
+  filter(!is.na(X_casthm1), !is.na(genhlth)) %>%
+  filter(X_casthm1 == "Yes") %>%
+  group_by(genhlth) %>%
+  summarize(count_asth = n()) %>%
+  mutate(perc_asth = count_asth / sum(count_asth))
+
+asth_health
+```
+Similarly, from the above table, we find that among the respondents with current asthma diagnosis (`r sum(asth_health$count_asth)` respondents), their self-identified health status is noticeably worse than the general respondents.
+
+**Diabetes** 
+
+```{r}
+
+# currently have diabetes 
+diab_health <- brfss2013 %>%
+  filter(!is.na(diabete3), !is.na(genhlth)) %>%
+  filter(diabete3 == "Yes") %>%
+  group_by(genhlth) %>%
+  summarize(count_diab = n()) %>%
+  mutate(perc_diab = count_diab / sum(count_diab))
+
+diab_health
+```
+The above table summarizes health status data for patients currently living with diabetes (```r sum(diab_health$count_diab)``` respondents). We can see an even stronger trend that these patients tend to self-categorize themselves as having worse general health. For example, where the general respondents have a 13.6% probability of self-identifying themselves as having "fair" health. This percentage increased to 29.7% for the diabetes group. Similarly, in the general group, only 5.7% of the people indicated that they have "poor" health; whereas among the diabetes group, 15.8% of them indicated that they have "poor" health. 
+
+If we consider 5.7% as a good estimate of "poor" health for the general population, the probability of randomly selecting `r diab_health$count_diab[diab_health$genhlth == "Poor"]` (the same number of diabetes patients who identified themselves as having "poor" health) or more people among a random sample of `r sum(diab_health$count_diab)` subjects (the same number of diabetes patients in the respondents) subjects who would self-identify themselves as having "poor" health can be found by the following Binomial distribution. 
+
+```{r}
+
+q <- diab_health$count_diab[diab_health$genhlth == "Poor"]
+size <- sum(diab_health$count_diab)
+prob <- health_status$percent[health_status$genhlth=="Poor"]
+  
+prob_poor_diab <- pbinom(q, size, prob, lower.tail=FALSE) 
+prob_poor_diab
+```
+
+We can see that the probability of finding `r diab_health$count_diab[diab_health$genhlth == "Poor"]` or more people from a random sample of `r sum(diab_health$count_diab)` people that would identify themselves as having "poor" health is `r prob_poor_diab`. This can also be rationalized by looking at the Gaussian approximation of the Binomial distribution. 
+
+
+```{r}
+mu <- sum(diab_health$count_diab) * health_status$percent[health_status$genhlth=="Poor"]
+sig <- sqrt( mu * (1 - health_status$percent[health_status$genhlth=="Poor"]) )
+mu
+sig
+
+z_score <- ( q - mu ) / sig
+z_score
+
+```
+We can see that at 5.7% rate of a general poputation self-identifying themselves as having "poor" health, the mean of the Gaussian distribution is `r mu` and the standard deviation is `r sig`. In the diabetes group, we found `r diab_health$count_diab[diab_health$genhlth == "Poor"]` people who indicated that they have "poor" health. This number has a Z-score of `r z_score`, which means that the number is more than 100 standard deviations above the mean value, hence the outcome would be essentially zero. 
+
+
+**Overall comparison** 
+
+Next, we will put the results from the above tables into a single bar plot for easy visualization and comparison. 
+
+```{r}
+
+# combine the above data into one data frame 
+disease_health <- data.frame(genhlth = health_status$genhlth, gen = health_status$percent, bmi = bmi_health$perc_bmi, chol = chol_health$perc_chol, arth = arth_health$perc_arth, asth = asth_health$perc_asth, diab = diab_health$perc_diab)
+
+# melt the data frame for easy bar plotting
+dise_health <- melt(disease_health)
+
+# plot a bar chart, where each bar represent one disease condition, and the segments in
+#    each bar represent the percentage of respondents having the self-designated health status
+ggplot(dise_health, aes(x=variable, y=value, fill=genhlth)) + geom_bar(stat="identity")
+
+
+```
+
+In the above plot, the X-axis labels represent the general, overweight/obese, high-cholesterol, arthritis, asthma, and diabetes respondents. The Y-axis represent the percentages of how many people in each medical condition self-categorized themselves regarding their health status. 
+
+From this bar plot, we can see that the health conditions tend to be more debilitating going from overweight/obesity, high cholesterol, arthritis, asthma, to diabetes. 
+
+
+## Conclusion 
+
+In summary, this report presents exploratory analysis of the Behavioral Risk Factor Surveillance System (BRFSS) dataset. We examined the data set, and tried to answer three questions. We found that the physical activity level is correlated with the health status: individuals with high physical activity levels tend to self identify themselves as having good or better health whereas people with low physical activity tend to identify themselves as having poorer health. We also found that people with existing medical conditions tend to have worse health status, from obesity, high cholesterol, arthitis, asthma, to diabetes, in increasing severity of the impact. Using Binomials distributions as approximation, we found these differences of particular subject groups from the property of the general sample to be statistically signicant. 
+
+As the BRFSS dataset can be considered randomly drawn, we belive the above conclusions to be generally robust to be extrapolated to the entire US population. However, as the data is observational and not experimental, no causal conclusions can be drawn. If cause interferences are desired, interventional studies would be needed. 
+
+
+
