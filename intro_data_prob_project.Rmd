@@ -48,7 +48,17 @@ In addition, because the data is obversational and not experimental (i.e., no ra
 
 ## Part 2: Research questions
 
-### Research question 1:
+### Research question 1: Is fruit and vegetable intake correlated with general health status? 
+
+Fruits and vegetables provide essential nutrients to main human health. It is anticipated that people with higher fruit and vegetable intake will have better health. 
+
+In this part of the analysis, we will look at three variables, `genhlth` (general health status), `X_frutsum` (total fruit consumed per day), and `X_vegesum` (total vegetable consumed per day), and examine whether higher values of `X_frutsum` and `X_vegesum` are associated with higher rankings of `genhlth`. 
+
+Variable `genhlth` is the subject's self-identified general health status. It has eight levels, including `Excellent`, `Very good`, `Good`, `Fair`, `Poor`, `Don't know/Not Sure`, `Refused`, and `Not asked or Missing`. There are about 2,000 subjects whose responses are unknown or missing. As this number is small compared to the entire sample size (about 490,000), we will ignore these rows of data from the subsequent analysis. 
+
+Variable `X_frutsum` is a calculated quantity, reflecting the number of fruits consumed per day. The value of this variable has two implicit decimal places, so we will be dividing its value by 100 during the analysis. 
+
+Similarly, variable `X_vegesum` is a calculated quantity, describing the number of vegetables consumed per day. Again, the value has two implied decimal places, and we will divide this value by 100 before other calcualations. 
 
 
 ### Research question 2: Is physical activity level correlated with general health status?
@@ -77,8 +87,28 @@ In Part 3, we will examine these variables and how patients with these medical c
 
 ## Part 3: Exploratory data analysis
 
-### Research question 1: 
+### Research question 1: Is fruit and vegetable intake correlated with general health status? 
 
+To answer the first question, we will compute the statistics of fruit intake and vegetable intake, grouped by the health status. We take a simple sum of the fruit intake and vegetable intake to obtain the total fruit and vegetable consumption per day. We will ignore respondents with missing values. 
+
+```{r}
+fv_health <- brfss2013 %>%
+  filter(!is.na(genhlth), !is.na(X_frutsum), !is.na(X_vegesum)) %>%
+  group_by(genhlth) %>%
+  mutate(frut = X_frutsum/100, vege = X_vegesum/100, fv=frut+vege) %>%
+  summarize(mean=mean(frut), sd=sd(frut), median=median(frut), vm=mean(vege),    vsd=sd(vege), vmed=median(vege), fvm=mean(fv), fvsd=sd(fv), fvmd=median(fv)) 
+
+fv_health
+```
+
+As can be seen from the above table, the mean of the total fruit and vegetable intake per day is 3.8 for people with "excellent" health, 3.4 for people with "very good" health, 3.1 for people with "good" health, 2.9 for people with "fair" health, and 2.8 for people with "poor" health. These results can be presented in the below bar plot. 
+
+
+```{r}
+ggplot(fv_health, aes(x=genhlth, y=fvm, fill="Fruit+Vege")) + geom_bar(stat="identity") + geom_errorbar(aes(ymin=fvm-fvsd, ymax=fvm+fvsd), width=.8)
+```
+
+In the above plot, the X-axis lists the five health categories and the Y-axis is the mean of the total amount of fruit and vegetable consumed per day for people within that health category. The vertical lines represent the standard deviations of the total amount of fruit and vegetable consumption. From this plot, we can see that there is a general trend that healthier people have higher fruit and vegetable intake. However, the large standard deviations suggest that the different health categories do not have significant differences. 
 
 
 ### Research question 2: Is physical activity level correlated with general health status?
@@ -284,7 +314,11 @@ From this bar plot, we can see that the health conditions tend to be more debili
 
 ## Conclusion 
 
-In summary, this report presents exploratory analysis of the Behavioral Risk Factor Surveillance System (BRFSS) dataset. We examined the data set, and tried to answer three questions. We found that the physical activity level is correlated with the health status: individuals with high physical activity levels tend to self identify themselves as having good or better health whereas people with low physical activity tend to identify themselves as having poorer health. We also found that people with existing medical conditions tend to have worse health status, from obesity, high cholesterol, arthitis, asthma, to diabetes, in increasing severity of the impact. Using Binomials distributions as approximation, we found these differences of particular subject groups from the property of the general sample to be statistically signicant. 
+In summary, this report presents exploratory analysis of the Behavioral Risk Factor Surveillance System (BRFSS) dataset. We examined the data set, and tried to answer three questions. 
+
+For question 1, we found healthier individuals tend to consume more fruit and vegetables per day. But the statistics are not strong enough to differentiate the different health categories. 
+
+For question 2, we found that the physical activity level is correlated with the health status: individuals with high physical activity levels tend to self identify themselves as having good or better health whereas people with low physical activity tend to identify themselves as having poorer health. For question 3, we found that people with existing medical conditions tend to have worse health status, from obesity, high cholesterol, arthitis, asthma, to diabetes, in increasing severity of the impact. Using Binomials distributions as approximation, we found these differences of particular subject groups from the property of the general sample to be statistically signicant. 
 
 As the BRFSS dataset can be considered randomly drawn, we belive the above conclusions to be generally robust to be extrapolated to the entire US population. However, as the data is observational and not experimental, no causal conclusions can be drawn. If cause interferences are desired, interventional studies would be needed. 
 
